@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AWS Cost Optimization Audit — Eran Mekler</title>
+  <style>
+    @page { size: A4; margin: 10mm 18mm; }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #d0d0d0;
+      color: #1a1a1a;
+      font-size: 11pt;
+      line-height: 1.5;
+      padding: 24px;
+    }
+
+    .page {
+      background: white;
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 14mm 18mm;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .main-content { flex: 1; }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .page { box-shadow: none; width: 100%; min-height: unset; padding: 0; margin: 0; }
+    }
+
+    /* ── Header ── */
+    .header {
+      border-bottom: 2.5px solid #0f2d5e;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+    .header h1 {
+      font-size: 22pt;
+      font-weight: 700;
+      color: #0f2d5e;
+      letter-spacing: -0.3px;
+      line-height: 1.15;
+    }
+    .header .tagline {
+      font-size: 13pt;
+      color: #1a6fbf;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    .header .cert {
+      font-size: 9pt;
+      color: #555;
+      margin-top: 3px;
+      font-style: italic;
+    }
+    .header .contact {
+      font-size: 10pt;
+      color: #555;
+      margin-top: 6px;
+    }
+    .header .contact a {
+      color: #1a6fbf;
+      text-decoration: none;
+    }
+
+    /* ── Section labels ── */
+    h2 {
+      font-size: 8.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.1px;
+      color: #0f2d5e;
+      margin-bottom: 6px;
+    }
+
+    p {
+      font-size: 11pt;
+      color: #333;
+    }
+
+    /* ── Layout ── */
+    .block { margin-bottom: 16px; }
+
+    .row {
+      display: flex;
+      gap: 18px;
+      margin-bottom: 16px;
+    }
+    .col-wide  { flex: 3; }
+    .col-narrow { flex: 2; }
+
+    /* ── Deliverables ── */
+    ul.deliverables {
+      list-style: none;
+      padding-left: 0;
+      margin-top: 4px;
+    }
+    ul.deliverables li {
+      font-size: 11pt;
+      color: #333;
+      padding: 6px 0 6px 15px;
+      position: relative;
+    }
+    ul.deliverables li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #16a34a;
+      font-size: 9pt;
+      font-weight: 700;
+    }
+
+    /* ── Pricing table ── */
+    .pricing-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 5px;
+    }
+    .pricing-table th {
+      background: #0f2d5e;
+      color: white;
+      text-align: center;
+      padding: 9px 4px;
+      font-size: 10pt;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .pricing-table td {
+      text-align: center;
+      padding: 9px 4px;
+      border: 1px solid #e0e0e0;
+    }
+    .pricing-table .price {
+      font-size: 14pt;
+      font-weight: 700;
+      color: #0f2d5e;
+      display: block;
+    }
+    .pricing-table .spend {
+      font-size: 9pt;
+      color: #666;
+      display: block;
+      margin-top: 1px;
+    }
+    .early-adopter {
+      font-size: 9.5pt;
+      color: #92400e;
+      margin-top: 6px;
+      background: #fffbeb;
+      border: 1px solid #f59e0b;
+      border-radius: 4px;
+      padding: 5px 8px;
+      line-height: 1.4;
+    }
+
+    /* ── Sample findings ── */
+    .finding {
+      background: #f0f6ff;
+      border-left: 3px solid #1a6fbf;
+      border-radius: 0 5px 5px 0;
+      padding: 9px 12px;
+      margin-bottom: 8px;
+    }
+    .finding .f-title {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #0f2d5e;
+      margin-bottom: 2px;
+    }
+    .f-badge {
+      display: inline-block;
+      background: #dcfce7;
+      color: #15803d;
+      font-size: 9pt;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .f-badge-medium {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .finding .f-meta {
+      font-size: 10pt;
+      color: #444;
+      line-height: 1.4;
+    }
+    .findings-caption {
+      font-size: 9.5pt;
+      color: #777;
+      font-style: italic;
+      margin-top: 4px;
+    }
+
+    /* ── Process steps ── */
+    .process-steps { margin-top: 5px; }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin-bottom: 10px;
+    }
+    .step-num {
+      background: #0f2d5e;
+      color: white;
+      font-size: 7.5pt;
+      font-weight: 700;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-text {
+      font-size: 10.5pt;
+      color: #333;
+      line-height: 1.45;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      border-top: 1px solid #ddd;
+      margin-top: 12px;
+      padding-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer .cta {
+      font-size: 10.5pt;
+      font-weight: 600;
+      color: #0f2d5e;
+    }
+    .footer .cta a {
+      color: #1a6fbf;
+      text-decoration: none;
+    }
+    .footer .referred {
+      font-size: 9pt;
+      color: #aaa;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <div class="header">
+      <h1>Eran Mekler</h1>
+      <div class="tagline">AWS Cost Optimization Audit</div>
+      <div class="cert">AWS Certified Solutions Architect &mdash; Associate</div>
+      <div class="contact">
+        meklereran@gmail.com &nbsp;&middot;&nbsp;
+        <a href="https://calendly.com/meklereran/aws-cost-review-15-minutes">calendly.com/meklereran/aws-cost-review-15-minutes</a>
+      </div>
+    </div>
+
+    <div class="main-content">
+    <div class="block">
+      <h2>The Problem</h2>
+      <p>Most companies running on AWS overpay by 20–40% without realizing it. Waste hides in NAT Gateway data transfer, log retention defaults, over-provisioned RDS instances, and Savings Plan gaps. It doesn't show up as one big line item — it's spread across a dozen services, invisible without a systematic check.</p>
+    </div>
+
+    <div class="block">
+      <h2>What I Do</h2>
+      <p>I audit your full AWS bill across 12 cost categories. Every finding comes with an exact dollar amount, difficulty rating, and step-by-step implementation instructions. Delivered in 5–7 business days. No vague recommendations — only specific, actionable findings you can act on immediately.</p>
+    </div>
+
+    <div class="row">
+      <div class="col-wide">
+        <h2>What You Get</h2>
+        <ul class="deliverables">
+          <li>Cost optimization report — 12 categories checked</li>
+          <li>Security hardening notes</li>
+          <li>2-page executive summary for stakeholders</li>
+          <li>15–20 min Loom walkthrough of all findings</li>
+          <li>14, 30, or 60-day email support (by tier)</li>
+        </ul>
+      </div>
+      <div class="col-narrow">
+        <h2>Pricing</h2>
+        <table class="pricing-table">
+          <tr>
+            <th>Basic</th>
+            <th>Growth</th>
+            <th>Scale</th>
+          </tr>
+          <tr>
+            <td>
+              <span class="price">$497</span>
+              <span class="spend">&lt;$5K/mo AWS</span>
+            </td>
+            <td>
+              <span class="price">$997</span>
+              <span class="spend">$5K–$20K/mo</span>
+            </td>
+            <td>
+              <span class="price">$1,997</span>
+              <span class="spend">$20K+/mo</span>
+            </td>
+          </tr>
+        </table>
+        <div class="early-adopter">
+          Early adopter: 50% off any tier for a written testimonial. 5 spots available.
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-wide">
+        <h2>Sample Findings</h2>
+        <div class="finding">
+          <div class="f-title">EBS gp2 &rarr; gp3 migration <span class="f-badge">Easy</span></div>
+          <div class="f-meta">~$135/mo savings &nbsp;&middot;&nbsp; Modify volumes in EC2 console. Zero performance impact. Takes 20 minutes.</div>
+        </div>
+        <div class="finding">
+          <div class="f-title">CloudWatch log retention <span class="f-badge">Easy</span></div>
+          <div class="f-meta">~$80/mo savings &nbsp;&middot;&nbsp; Set 30–90 day retention on all log groups. Default is Never Expire.</div>
+        </div>
+        <div class="finding">
+          <div class="f-title">NAT Gateway data transfer <span class="f-badge f-badge-medium">Medium</span></div>
+          <div class="f-meta">~$200/mo savings &nbsp;&middot;&nbsp; Cross-AZ traffic routed through NAT instead of VPC Endpoints. Common in multi-AZ setups and often the 2nd largest bill item after EC2.</div>
+        </div>
+        <p class="findings-caption">These are illustrative examples from the 12 audit categories. AWS accounts in this spend range commonly carry $500–$2,000/mo in addressable costs across multiple services.</p>
+      </div>
+      <div class="col-narrow">
+        <h2>How It Works</h2>
+        <div class="process-steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text">You share read-only IAM access (ViewOnlyAccess — setup guide included)</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text">I audit and analyze your full AWS bill — 5–7 business days</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">You receive the full report and Loom walkthrough</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /.main-content -->
+
+    <div class="footer">
+      <div class="cta">Book a free 15-min call: <a href="https://calendly.com/meklereran/aws-cost-review-15-minutes">calendly.com/meklereran/aws-cost-review-15-minutes</a></div>
+      <div class="referred">Referred by Krzysztof Slowinski</div>
+    </div>
+
+  </div>
+</body>
+</html>
